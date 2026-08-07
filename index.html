@@ -127,6 +127,16 @@
   .ig-dots span{width:6px;height:6px;border-radius:50%;background:#c7ccd8}
   .ig-dots span.act{background:var(--ig-blue)}
 
+  /* MidJourney prompt cards */
+  #mjOut{margin-top:12px}
+  .mj-title{font-size:12.5px;color:var(--ig-purple);font-weight:700;margin-bottom:8px}
+  .mj-card{background:#fbfcfe;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+  .mj-lb{font-size:11px;color:var(--sub);font-weight:700;margin-bottom:4px}
+  .mj-tx{font-size:12px;line-height:1.6;color:var(--ink);white-space:pre-wrap;word-break:break-word}
+  .mj-copy{margin-top:8px;border:1px solid var(--ig-purple);background:#fff;color:var(--ig-purple);
+    border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer}
+  .mj-copy:hover{background:var(--ig-purple);color:#fff}
+
   /* phone preview */
   .stage{display:flex;justify-content:center}
   .phone{
@@ -255,6 +265,7 @@
           <button class="btn ghost" id="copyTag">タグをコピー</button>
         </div>
         <div class="out-box" id="scriptOut" style="display:none"></div>
+        <div id="mjOut" style="display:none"></div>
         <p class="hint">段階0では、この投稿文をコピーしてInstagramアプリに貼れば今日から運用できます。</p>
       </div>
     </div>
@@ -343,6 +354,7 @@
 
   const $=id=>document.getElementById(id);
   const pick=a=>a[Math.floor(Math.random()*a.length)];
+  const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 
   // ---- チップ選択 ----
   document.querySelectorAll("#bizChips .chip").forEach(c=>{
@@ -413,6 +425,7 @@
     const kw=$("kw").value.trim()||"（ここに伝えたい内容が入ります）";
     const tags=d.tags.join(" ");
     $("pvDots").classList.remove("show");
+    $("mjOut").style.display="none";
     if(!hasPhoto){
       $("pvImg").style.background="#eef0f6";
       $("pvImg").innerHTML='<span class="slide-no" id="pvSlideNo">1/5</span>写真をここに表示';
@@ -479,7 +492,17 @@
         value,
         "いますぐ無料でお試し 🔗 "+url+"（プロフィールのリンクから）"
       ],
-      hashtags:[brandTag,...APP_TAGS].join(" ")
+      hashtags:[brandTag,...APP_TAGS].join(" "),
+      mj_prompts:(function(){
+        const st="soft watercolor illustration, warm gentle mood, clean minimal composition, muted navy and warm gold on soft cream background, lots of negative space for text, tasteful Japanese lifestyle, editorial quality --ar 1:1";
+        return [
+          "minimalist cover illustration, a single meaningful object on a clean table in soft morning light, calm and slightly dramatic, "+st,
+          "a person at home looking a little troubled by a small everyday problem, relatable warm scene, "+st,
+          "a friendly smartphone held in one hand showing a clean simple app, a relieved smile, sense of ease, "+st,
+          "a smooth rising line graph shared warmly between two people at a table, reassurance and connection, "+st,
+          "an inviting open door of warm golden light with a welcoming app screen, optimistic mood, "+st
+        ];
+      })()
     };
   }
 
@@ -492,6 +515,23 @@
     $("capOut").textContent=o.caption+"\n\n"+o.hashtags;
     $("scriptOut").style.display="block";
     $("scriptOut").textContent=slides.trim();
+
+    // MidJourneyプロンプト（5枚・1枚ずつコピー）
+    const mp=o.mj_prompts||[];
+    if(mp.length){
+      const labels=["1枚目","2枚目","3枚目","4枚目","5枚目"];
+      let html='<div class="mj-title">🎨 MidJourneyプロンプト（5枚分・各カードのコピーを押す）</div>';
+      mp.forEach((p,i)=>{
+        html+='<div class="mj-card"><div class="mj-lb">'+(labels[i]||("スライド"+(i+1)))+
+          '</div><div class="mj-tx">'+esc(p)+
+          '</div><button class="mj-copy" data-p="'+encodeURIComponent(p)+'">プロンプトをコピー</button></div>';
+      });
+      $("mjOut").style.display="block";
+      $("mjOut").innerHTML=html;
+      $("mjOut").querySelectorAll(".mj-copy").forEach(b=>{ b.onclick=()=>copy(decodeURIComponent(b.dataset.p)); });
+    } else {
+      $("mjOut").style.display="none";
+    }
     $("pvCap").innerHTML="<b>"+($("acct").value||"アカウント名")+"</b>"+o.caption.replace(/\n/g,"<br>");
     $("pvTags").textContent=o.hashtags;
     $("pvDots").classList.add("show");
