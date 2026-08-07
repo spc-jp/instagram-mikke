@@ -305,6 +305,10 @@
   // ---- 状態 ----
   let biz="tax", ptype="feed", mode="biz", hasPhoto=false, lastCap="", lastTags="";
 
+  // ★段階1：ここにあなたのWorkerのURLを入れると、AI生成に切り替わります
+  //   （空のままなら段階0の「型」で動作します）
+  const WORKER_URL="https://instagram-mikke.yymmatsu.workers.dev";
+
   // ---- 業種別テンプレート ----
   const DATA={
     tax:{
@@ -438,47 +442,89 @@
   };
 
   // ---- アプリ告知の生成（5項目→カルーセル＋キャプション）----
-  function genApp(){
-    const name=$("appName").value.trim()||"（アプリ名）";
-    const url=$("appUrl").value.trim()||"（アプリURL）";
-    const target=$("appTarget").value.trim()||"必要としている方";
-    const overview=$("appOverview").value.trim()||"スマホひとつで、その作業がぐっとラクになります。";
-    const value=$("appValue").value.trim()||"「面倒で続かない」を、「これなら続く」に変えます。";
+  function appFields(){
+    return {
+      appName:$("appName").value.trim(),
+      appUrl:$("appUrl").value.trim(),
+      appTarget:$("appTarget").value.trim(),
+      appOverview:$("appOverview").value.trim(),
+      appValue:$("appValue").value.trim()
+    };
+  }
+
+  // 段階0：入力を「型」に流し込む
+  function templateObj(f){
+    const name=f.appName||"（アプリ名）";
+    const url=f.appUrl||"（アプリURL）";
+    const target=f.appTarget||"必要としている方";
+    const overview=f.appOverview||"スマホひとつで、その作業がぐっとラクになります。";
+    const value=f.appValue||"「面倒で続かない」を、「これなら続く」に変えます。";
     const hook=pick(APP_HOOK);
     const brandTag="#"+name.replace(/[\s　「」（）\(\)]/g,"");
-    const tags=[brandTag,...APP_TAGS].join(" ");
-
-    const cap=
-      hook.replace(/\n/g,"")+"\n\n"+
-      value+"\n\n"+
-      "そこで作りました📱\n「"+name+"」\n\n"+
-      overview+"\n\n"+
+    const caption=
+      hook.replace(/\n/g,"")+"\n\n"+value+"\n\n"+
+      "そこで作りました📱\n「"+name+"」\n\n"+overview+"\n\n"+
       "こんな方におすすめです👇\n・"+target+"\n・「あとで」を「いま」に変えたい方\n\n"+
       "▶ いますぐ無料でお試しできます\n🔗 "+url+"\n（プロフィールのリンクからも飛べます）";
-    lastCap=cap; lastTags=tags;
+    return {
+      hook:hook,
+      caption:caption,
+      slides:[
+        hook.replace(/\n/g," "),
+        "こんなこと、ありませんか？（"+target+"に多いお悩みです）",
+        "そこで「"+name+"」。"+overview,
+        value,
+        "いますぐ無料でお試し 🔗 "+url+"（プロフィールのリンクから）"
+      ],
+      hashtags:[brandTag,...APP_TAGS].join(" ")
+    };
+  }
 
-    const slides=
-      "🖼 5枚カルーセル構成（各スライドに載せる言葉）\n※タップでコピーできます\n\n"+
-      "1枚目 表紙・フック\n　"+hook.replace(/\n/g," ")+"\n\n"+
-      "2枚目 共感\n　こんなこと、ありませんか？\n　（"+target+"に多いお悩みです）\n\n"+
-      "3枚目 解決\n　そこで「"+name+"」\n　"+overview+"\n\n"+
-      "4枚目 価値・変わること\n　"+value+"\n\n"+
-      "5枚目 行動\n　いますぐ無料でお試し\n　🔗 "+url+"\n　プロフィールのリンクから";
-
-    $("capOut").textContent=cap+"\n\n"+tags;
+  // 型でもAIでも、同じ形のデータを画面に描く
+  function renderApp(o){
+    lastCap=o.caption; lastTags=o.hashtags;
+    const roles=["1枚目 表紙・フック","2枚目 共感","3枚目 解決","4枚目 価値・変わること","5枚目 行動"];
+    let slides="🖼 5枚カルーセル構成（各スライドに載せる言葉）\n※タップでコピーできます\n\n";
+    (o.slides||[]).forEach((s,i)=>{ slides+=(roles[i]||("スライド"+(i+1)))+"\n　"+s+"\n\n"; });
+    $("capOut").textContent=o.caption+"\n\n"+o.hashtags;
     $("scriptOut").style.display="block";
-    $("scriptOut").textContent=slides;
-
-    $("pvCap").innerHTML="<b>"+($("acct").value||"アカウント名")+"</b>"+cap.replace(/\n/g,"<br>");
-    $("pvTags").textContent=tags;
+    $("scriptOut").textContent=slides.trim();
+    $("pvCap").innerHTML="<b>"+($("acct").value||"アカウント名")+"</b>"+o.caption.replace(/\n/g,"<br>");
+    $("pvTags").textContent=o.hashtags;
     $("pvDots").classList.add("show");
     if(!hasPhoto){
       $("pvImg").style.background="var(--ig-grad)";
-      $("pvImg").innerHTML='<span class="slide-no show" id="pvSlideNo">1/5</span><div class="cover">'+hook.replace(/\n/g,"<br>")+'</div>';
+      $("pvImg").innerHTML='<span class="slide-no show" id="pvSlideNo">1/5</span><div class="cover">'+String(o.hook||"").replace(/\n/g,"<br>")+'</div>';
     } else {
       const sn=$("pvSlideNo"); if(sn) sn.classList.add("show");
     }
-    toast("最高の告知、できました");
+  }
+
+  async function genApp(){
+    const f=appFields();
+    // 段階0：Worker未設定なら型で生成
+    if(!WORKER_URL){
+      renderApp(templateObj(f));
+      toast("最高の告知、できました（型）");
+      return;
+    }
+    // 段階1：Claude APIで本物のコピーに
+    const btn=$("gen"), label=btn.textContent;
+    btn.disabled=true; btn.textContent="AIが執筆中…✍️";
+    try{
+      const r=await fetch(WORKER_URL,{
+        method:"POST",
+        headers:{"content-type":"application/json"},
+        body:JSON.stringify(f)
+      });
+      const o=await r.json();
+      if(o&&o.caption&&o.slides){ renderApp(o); toast("最高の告知、できました✨"); }
+      else { renderApp(templateObj(f)); toast("AIが混み合ったため、型で作成しました"); }
+    }catch(e){
+      renderApp(templateObj(f)); toast("接続できず、型で作成しました");
+    }finally{
+      btn.disabled=false; btn.textContent=label;
+    }
   }
 
   // ---- コピー ----
