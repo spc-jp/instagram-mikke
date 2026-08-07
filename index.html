@@ -266,6 +266,7 @@
           <button class="btn ghost" id="copyTag">タグをコピー</button>
         </div>
         <div class="out-box" id="scriptOut" style="display:none"></div>
+        <button class="btn ghost" id="copyScript" style="display:none;margin-top:10px">カルーセル文をまとめてコピー</button>
         <div id="mjOut" style="display:none"></div>
         <p class="hint">段階0では、この投稿文をコピーしてInstagramアプリに貼れば今日から運用できます。</p>
       </div>
@@ -437,6 +438,7 @@
       lastCap=cap; lastTags=tags;
       $("capOut").textContent=cap+"\n\n"+tags;
       $("scriptOut").style.display="none";
+      $("copyScript").style.display="none";
       $("pvCap").innerHTML="<b>"+($("acct").value||"アカウント名")+"</b>"+cap.replace(/\n/g,"<br>");
       $("pvTags").textContent=tags;
     } else {
@@ -451,6 +453,7 @@
       lastCap=cap; lastTags=tags;
       $("scriptOut").style.display="block";
       $("scriptOut").textContent=script;
+      { const b=$("copyScript"); b.style.display="block"; b.textContent="台本をまとめてコピー"; }
       $("capOut").textContent="▼ キャプション\n"+cap+"\n\n"+tags;
       $("pvCap").innerHTML="<b>"+($("acct").value||"アカウント名")+"</b>"+cap.replace(/\n/g,"<br>");
       $("pvTags").textContent=tags;
@@ -516,12 +519,15 @@
     $("capOut").textContent=o.caption+"\n\n"+o.hashtags;
     $("scriptOut").style.display="block";
     $("scriptOut").textContent=slides.trim();
+    const csBtn=$("copyScript"); csBtn.style.display="block"; csBtn.textContent="カルーセル文をまとめてコピー";
 
     // MidJourneyプロンプト（5枚・日英ペア・英語だけコピー）
     const mp=o.mj_prompts||[];
     if(mp.length){
       const labels=["1枚目","2枚目","3枚目","4枚目","5枚目"];
+      const enList=mp.map(p=>(p&&p.en)?p.en:(typeof p==="string"?p:"")).filter(Boolean);
       let html='<div class="mj-title">🎨 MidJourneyプロンプト（5枚分・英語をコピーして貼り付け）</div>';
+      html+='<button class="btn ghost" id="copyMjAll" style="margin-bottom:10px">MidJourney 5枚をまとめてコピー</button>';
       mp.forEach((p,i)=>{
         const ja=(p&&p.ja)?p.ja:"";
         const en=(p&&p.en)?p.en:(typeof p==="string"?p:"");
@@ -533,6 +539,7 @@
       $("mjOut").style.display="block";
       $("mjOut").innerHTML=html;
       $("mjOut").querySelectorAll(".mj-copy").forEach(b=>{ b.onclick=()=>copy(decodeURIComponent(b.dataset.p)); });
+      $("copyMjAll").onclick=()=>copy(enList.join("\n\n"));
     } else {
       $("mjOut").style.display="none";
     }
@@ -582,6 +589,7 @@
   }
   $("copyCap").onclick=()=>copy(lastCap?lastCap+"\n\n"+lastTags:"まず生成ボタンを押してください");
   $("copyTag").onclick=()=>copy(lastTags||"まず生成ボタンを押してください");
+  $("copyScript").onclick=()=>{ const t=$("scriptOut").textContent.trim(); if(t) copy(t); };
   $("scriptOut").style.cursor="pointer";
   $("scriptOut").onclick=()=>{ const t=$("scriptOut").textContent.trim(); if(t) copy(t); };
 
