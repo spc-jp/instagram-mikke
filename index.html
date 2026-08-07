@@ -132,6 +132,7 @@
   .mj-title{font-size:12.5px;color:var(--ig-purple);font-weight:700;margin-bottom:8px}
   .mj-card{background:#fbfcfe;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
   .mj-lb{font-size:11px;color:var(--sub);font-weight:700;margin-bottom:4px}
+  .mj-ja{font-size:12px;color:var(--navy);margin-bottom:6px;line-height:1.6}
   .mj-tx{font-size:12px;line-height:1.6;color:var(--ink);white-space:pre-wrap;word-break:break-word}
   .mj-copy{margin-top:8px;border:1px solid var(--ig-purple);background:#fff;color:var(--ig-purple);
     border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer}
@@ -481,7 +482,7 @@
       hook.replace(/\n/g,"")+"\n\n"+value+"\n\n"+
       "そこで作りました📱\n「"+name+"」\n\n"+overview+"\n\n"+
       "こんな方におすすめです👇\n・"+target+"\n・「あとで」を「いま」に変えたい方\n\n"+
-      "▶ いますぐ無料でお試しできます\n🔗 "+url+"\n（プロフィールのリンクからも飛べます）";
+      "まずは無料でお試しいただけます😊\n👇こちらからどうぞ\n"+url+"\n\nまたは、プロフィールのリンクからも飛べます✨";
     return {
       hook:hook,
       caption:caption,
@@ -490,17 +491,17 @@
         "こんなこと、ありませんか？（"+target+"に多いお悩みです）",
         "そこで「"+name+"」。"+overview,
         value,
-        "いますぐ無料でお試し 🔗 "+url+"（プロフィールのリンクから）"
+        "まずは無料でお試し 👇\n"+url+"\nまたはプロフィールのリンクから"
       ],
       hashtags:[brandTag,...APP_TAGS].join(" "),
       mj_prompts:(function(){
-        const st="soft watercolor illustration, warm gentle mood, clean minimal composition, muted navy and warm gold on soft cream background, lots of negative space for text, tasteful Japanese lifestyle, editorial quality --ar 1:1";
+        const tail=" negative space for text, hand-drawn playful illustration --sref 1662235262 --ar 1:1";
         return [
-          "minimalist cover illustration, a single meaningful object on a clean table in soft morning light, calm and slightly dramatic, "+st,
-          "a person at home looking a little troubled by a small everyday problem, relatable warm scene, "+st,
-          "a friendly smartphone held in one hand showing a clean simple app, a relieved smile, sense of ease, "+st,
-          "a smooth rising line graph shared warmly between two people at a table, reassurance and connection, "+st,
-          "an inviting open door of warm golden light with a welcoming app screen, optimistic mood, "+st
+          {ja:"表紙：机の上の象徴的なモノを主役に、静かで少しドラマチックに",en:"minimalist cover, a single meaningful object on a clean table in soft morning light, calm and slightly dramatic,"+tail},
+          {ja:"共感：小さな困りごとに悩む人。あるあるの日常シーン",en:"a person at home a little troubled by a small everyday problem, relatable warm scene,"+tail},
+          {ja:"解決：スマホでアプリを使い、ホッと安心した表情",en:"a friendly smartphone in one hand showing a clean simple app, a relieved smile, sense of ease,"+tail},
+          {ja:"価値：右肩上がりのグラフを二人で見て安心する様子",en:"a smooth rising line graph shared warmly between two people at a table, reassurance and connection,"+tail},
+          {ja:"行動：温かい光の開いたドアと歓迎するアプリ画面",en:"an inviting open door of warm golden light with a welcoming app screen, optimistic mood,"+tail}
         ];
       })()
     };
@@ -516,15 +517,18 @@
     $("scriptOut").style.display="block";
     $("scriptOut").textContent=slides.trim();
 
-    // MidJourneyプロンプト（5枚・1枚ずつコピー）
+    // MidJourneyプロンプト（5枚・日英ペア・英語だけコピー）
     const mp=o.mj_prompts||[];
     if(mp.length){
       const labels=["1枚目","2枚目","3枚目","4枚目","5枚目"];
-      let html='<div class="mj-title">🎨 MidJourneyプロンプト（5枚分・各カードのコピーを押す）</div>';
+      let html='<div class="mj-title">🎨 MidJourneyプロンプト（5枚分・英語をコピーして貼り付け）</div>';
       mp.forEach((p,i)=>{
-        html+='<div class="mj-card"><div class="mj-lb">'+(labels[i]||("スライド"+(i+1)))+
-          '</div><div class="mj-tx">'+esc(p)+
-          '</div><button class="mj-copy" data-p="'+encodeURIComponent(p)+'">プロンプトをコピー</button></div>';
+        const ja=(p&&p.ja)?p.ja:"";
+        const en=(p&&p.en)?p.en:(typeof p==="string"?p:"");
+        html+='<div class="mj-card"><div class="mj-lb">'+(labels[i]||("スライド"+(i+1)))+'</div>'+
+          (ja?'<div class="mj-ja">'+esc(ja)+'</div>':'')+
+          '<div class="mj-tx">'+esc(en)+'</div>'+
+          '<button class="mj-copy" data-p="'+encodeURIComponent(en)+'">英語プロンプトをコピー</button></div>';
       });
       $("mjOut").style.display="block";
       $("mjOut").innerHTML=html;
